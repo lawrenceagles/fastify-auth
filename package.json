@@ -17,6 +17,7 @@
 		"fastify-bearer-auth": "^5.1.0",
 		"fastify-jwt": "^2.4.0",
 		"fastify-plugin": "^3.0.0",
+		"mongoose": "^5.12.7",
 		"nodemon": "^2.0.7"
 	},
 	"devDependencies": {}
