@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin';
-const status = async (server, opts) => {
-	server.route({
+const status = async (fastify, opts) => {
+	fastify.route({
 		url: '/status',
 		logLevel: 'warn',
 		method: [ 'GET', 'HEAD' ],

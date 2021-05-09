@@ -1,6 +1,7 @@
 import fastify from 'fastify';
 import db from './config/index';
 import status from './routes/status';
+import users from './routes/users';
 
 const Port = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fastify-auth';
@@ -10,6 +11,7 @@ const app = fastify({ logger: true });
 // Activate plugins below:
 app.register(db, { uri });
 app.register(status);
+app.register(users);
 
 // create server
 const start = async () => {
