@@ -5,12 +5,18 @@ const usersRoutes = async (fastify, opts) => {
 	fastify
 		.decorate('asyncVerifyJWT', async (request, reply) => {
 			try {
-				const token = request.raw.headers('Authorization').replace('Bearer ', '');
-				const user = User.findByToken(token);
-				console.log('your user', user);
-				// reply.code(200).send(user);
+				if (!request.headers.authorization) {
+					throw new Error('No token was sent');
+				}
+				const token = request.headers.authorization.replace('Bearer ', '');
+				const user = await User.findByToken(token);
+				if (!user) {
+					// handles logged out user with valid token
+					throw new Error('Authentication failed!');
+				}
+				request.user = user;
+				request.token = token; // used in loggot route
 			} catch (error) {
-				console.log('your error', error);
 				reply.code(401).send(error);
 			}
 		})
@@ -20,10 +26,8 @@ const usersRoutes = async (fastify, opts) => {
 					throw new Error('username and Password is required!');
 				}
 				const user = await User.findByCredentials(request.body.username, request.body.password);
-				console.log('your user', user);
-				reply.code(200).send(user);
+				request.user = user;
 			} catch (error) {
-				console.log('your error', error);
 				reply.code(400).send(error);
 			}
 		})
@@ -37,10 +41,9 @@ const usersRoutes = async (fastify, opts) => {
 					const user = new User(req.body);
 
 					try {
-						// await user.save();
-						// const token = await user.generateAuthToken();
+						await user.save();
+						const token = await user.generateToken();
 						reply.status(201).send({ user });
-						// reply.status(201).send({ user, token });
 					} catch (error) {
 						reply.status(400).send(error);
 					}
@@ -53,8 +56,8 @@ const usersRoutes = async (fastify, opts) => {
 				logLevel: 'warn',
 				preHandler: fastify.auth([ fastify.asyncVerifyUsernameAndPassword ]),
 				handler: async (req, reply) => {
-					req.log.info('Auth route');
-					reply.send({ hello: 'Verified User!!!' });
+					const token = await req.user.generateToken();
+					reply.send({ status: 'You are logged in', user: req.user });
 				}
 			});
 
@@ -64,8 +67,26 @@ const usersRoutes = async (fastify, opts) => {
 				logLevel: 'warn',
 				preHandler: fastify.auth([ fastify.asyncVerifyJWT ]),
 				handler: async (req, reply) => {
-					req.log.info('Auth route');
-					reply.send({ Status: 'Successful', user: req.user });
+					reply.send({ status: 'Authenticated!', user: req.user });
+				}
+			});
+
+			fastify.route({
+				method: [ 'POST', 'HEAD' ],
+				url: '/logout',
+				logLevel: 'warn',
+				preHandler: fastify.auth([ fastify.asyncVerifyJWT ]),
+				handler: async (req, reply) => {
+					try {
+						req.user.tokens = req.user.tokens.filter((token) => {
+							return token.token !== req.token;
+						});
+						const loggedOutUser = await req.user.save();
+
+						reply.send({ status: 'You are logged out!', user: loggedOutUser });
+					} catch (e) {
+						res.status(500).send();
+					}
 				}
 			});
 		});

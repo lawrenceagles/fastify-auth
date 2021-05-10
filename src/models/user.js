@@ -44,7 +44,7 @@ userSchema.methods.generateToken = async function() {
 };
 
 // create a custom model method to find user by token for authenticationn
-userSchema.statics.findByToken = function(token) {
+userSchema.statics.findByToken = async function(token) {
 	let User = this;
 	let decoded;
 
@@ -57,7 +57,7 @@ userSchema.statics.findByToken = function(token) {
 	} catch (error) {
 		return error;
 	}
-	return User.findOne({
+	return await User.findOne({
 		_id: decoded._id,
 		'tokens.token': token
 	});
@@ -65,37 +65,19 @@ userSchema.statics.findByToken = function(token) {
 
 // create a new mongoose method for user login authenticationn
 userSchema.statics.findByCredentials = async (username, password) => {
-	try {
-		if (!username || !password) {
-			return new Error('One or more required field missing');
-		}
+	const user = await User.findOne({ username });
 
-		const loggedInUser = await User.findOne({ username });
-
-		if (!loggedInUser) {
-			throw new Error('Email does not exist');
-		}
-
-		const isMatch = bcrypt.compareSync(password, user.password);
-		if (!isMatch) {
-			throw new Error('Error Wrong Password');
-		}
-
-		return loggedInUser;
-	} catch (error) {
-		return error;
+	if (!user) {
+		throw new Error('Unable to login. Wrong username!');
 	}
-};
 
-userSchema.methods.removeToken = function(token) {
-	let user = this;
-	return user.updateOne({
-		$pull: {
-			tokens: {
-				token
-			}
-		}
-	});
+	const isMatch = await bcrypt.compare(password, user.password);
+
+	if (!isMatch) {
+		throw new Error('Unable to login. Wrong Password!');
+	}
+
+	return user;
 };
 
 const User = mongoose.model('user', userSchema);
