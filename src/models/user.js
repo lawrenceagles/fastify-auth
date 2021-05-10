@@ -61,11 +61,10 @@ user.statics.findByToken = function(token) {
 	let User = this;
 	let decoded;
 
-	if (!token) {
-		return new Error('Missing token header');
-	}
-
 	try {
+		if (!token) {
+			return new Error('Missing token header');
+		}
 		decoded = jwt.verify(token, 'sssssdfgg');
 	} catch (error) {
 		return error;
@@ -80,6 +79,9 @@ user.statics.findByToken = function(token) {
 user.statics.findByCredentials = async function(email, password) {
 	let User = this;
 	try {
+		if (!email || !password) {
+			return new Error('One or more required field missing');
+		}
 		const loggedInUser = await User.findOne({ email });
 		// find user by email
 		if (!loggedInUser) {
@@ -94,7 +96,7 @@ user.statics.findByCredentials = async function(email, password) {
 			throw new Error('Error Wrong Password');
 		}
 	} catch (error) {
-		console.log(error);
+		return error;
 	}
 };
 
