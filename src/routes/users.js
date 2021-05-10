@@ -5,20 +5,21 @@ const usersRoutes = async (fastify, opts) => {
 	fastify
 		.decorate('asyncVerifyJWT', async (request, reply) => {
 			try {
-				const user = User.findByToken(request.raw.headers.Bearer);
+				const token = request.raw.headers('Authorization').replace('Bearer ', '');
+				const user = User.findByToken(token);
 				console.log('your user', user);
-				reply.code(200).send(user);
+				// reply.code(200).send(user);
 			} catch (error) {
 				console.log('your error', error);
 				reply.code(401).send(error);
 			}
 		})
-		.decorate('asyncVerifyUserAndPassword', async (request, reply) => {
+		.decorate('asyncVerifyUsernameAndPassword', async (request, reply) => {
 			try {
 				if (!request.body) {
-					throw new Error('Email and Password is required!');
+					throw new Error('username and Password is required!');
 				}
-				const user = await User.findByCredentials(request.body.email, request.body.password);
+				const user = await User.findByCredentials(request.body.username, request.body.password);
 				console.log('your user', user);
 				reply.code(200).send(user);
 			} catch (error) {
@@ -33,8 +34,16 @@ const usersRoutes = async (fastify, opts) => {
 				url: '/register',
 				logLevel: 'warn',
 				handler: async (req, reply) => {
-					req.log.info('Auth route');
-					reply.send({ hello: 'Verified User!!!' });
+					const user = new User(req.body);
+
+					try {
+						// await user.save();
+						// const token = await user.generateAuthToken();
+						reply.status(201).send({ user });
+						// reply.status(201).send({ user, token });
+					} catch (error) {
+						reply.status(400).send(error);
+					}
 				}
 			});
 
@@ -42,7 +51,7 @@ const usersRoutes = async (fastify, opts) => {
 				method: [ 'POST', 'HEAD' ],
 				url: '/login',
 				logLevel: 'warn',
-				preHandler: fastify.auth([ fastify.asyncVerifyUserAndPassword ]),
+				preHandler: fastify.auth([ fastify.asyncVerifyUsernameAndPassword ]),
 				handler: async (req, reply) => {
 					req.log.info('Auth route');
 					reply.send({ hello: 'Verified User!!!' });
@@ -62,5 +71,4 @@ const usersRoutes = async (fastify, opts) => {
 		});
 };
 
-// export default fp(usersRoutes);
 export default usersRoutes;
