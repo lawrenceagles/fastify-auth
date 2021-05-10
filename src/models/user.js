@@ -23,22 +23,22 @@ const user = mongoose.Schema({
 });
 
 // encrypt password using bcrypt conditionally. Only if the user is newly created.
-// user.pre('save', function(next) {
-// 	const admin = this; // bind this
+user.pre('save', function(next) {
+	const user = this; // bind this
 
-// 	if (admin.isModified('password')) {
-// 		try {
-// 			const salt = bcrypt.genSaltSync(12);
-// 			const hash = bcrypt.hashSync(admin.password, salt);
-// 			admin.password = hash;
-// 			next();
-// 		} catch (error) {
-// 			return next(error);
-// 		}
-// 	} else {
-// 		return next();
-// 	}
-// });
+	if (user.isModified('password')) {
+		try {
+			const salt = bcrypt.genSaltSync(12);
+			const hash = bcrypt.hashSync(user.password, salt);
+			user.password = hash;
+			next();
+		} catch (error) {
+			return next(error);
+		}
+	} else {
+		return next();
+	}
+});
 
 user.methods.generateToken = function() {
 	let user = this;
@@ -56,46 +56,51 @@ user.methods.generateToken = function() {
 	});
 };
 
-// create a custom model method to find admin by token for authenticationn
+// create a custom model method to find user by token for authenticationn
 user.statics.findByToken = function(token) {
-	let Admin = this;
+	let User = this;
 	let decoded;
 
-	try {
-		decoded = jwt.verify(token, process.env.JWT_SECRET);
-	} catch (e) {
-		return Promise.reject();
+	if (!token) {
+		return new Error('Missing token header');
 	}
-	return Admin.findOne({
+
+	try {
+		decoded = jwt.verify(token, 'sssssdfgg');
+	} catch (error) {
+		return error;
+	}
+	return User.findOne({
 		_id: decoded._id,
-		'tokens.token': token,
-		'tokens.access': 'auth'
+		'tokens.token': token
 	});
 };
 
 // create a new mongoose method for user login authenticationn
-user.statics.findByCredentials = function(email, password) {
-	let Admin = this;
-	return Admin.findOne({ email }).then((admin) => {
-		// find admin by email
-		if (!admin) {
-			// handle admin not found
-			return Promise.reject('Email does not exist');
+user.statics.findByCredentials = async function(email, password) {
+	let User = this;
+	try {
+		const loggedInUser = await User.findOne({ email });
+		// find user by email
+		if (!loggedInUser) {
+			// handle user not found
+			throw new Error('Email does not exist');
 		}
-		return new Promise((resolve, reject) => {
-			const passwordValidation = bcrypt.compareSync(password, admin.password);
-			if (passwordValidation === true) {
-				return resolve(admin);
-			} else {
-				return reject('Error Wrong Password');
-			}
-		});
-	});
+
+		const passwordValidation = bcrypt.compareSync(password, user.password);
+		if (passwordValidation === true) {
+			return loggedInUser;
+		} else {
+			throw new Error('Error Wrong Password');
+		}
+	} catch (error) {
+		console.log(error);
+	}
 };
 
 user.methods.removeToken = function(token) {
-	let admin = this;
-	return admin.updateOne({
+	let user = this;
+	return user.updateOne({
 		$pull: {
 			tokens: {
 				token
