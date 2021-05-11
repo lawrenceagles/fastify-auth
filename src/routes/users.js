@@ -33,6 +33,7 @@ const usersRoutes = async (fastify, opts) => {
 		})
 		.register(FastifyAuth)
 		.after(() => {
+			// register route unauthenticated
 			fastify.route({
 				method: [ 'POST', 'HEAD' ],
 				url: '/register',
@@ -50,6 +51,7 @@ const usersRoutes = async (fastify, opts) => {
 				}
 			});
 
+			// login route
 			fastify.route({
 				method: [ 'POST', 'HEAD' ],
 				url: '/login',
@@ -61,6 +63,7 @@ const usersRoutes = async (fastify, opts) => {
 				}
 			});
 
+			// proifle route
 			fastify.route({
 				method: [ 'GET', 'HEAD' ],
 				url: '/profile',
@@ -71,6 +74,7 @@ const usersRoutes = async (fastify, opts) => {
 				}
 			});
 
+			// logout route
 			fastify.route({
 				method: [ 'POST', 'HEAD' ],
 				url: '/logout',

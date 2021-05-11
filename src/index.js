@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import db from './config/index';
 import users from './routes/users';
 import env from 'dotenv';
+
 env.config();
 
 const Port = process.env.PORT;
